@@ -20,6 +20,10 @@ type lunamediaBidExt struct {
 	BidType *int `json:"BidType,omitempty"`
 }
 
+type respExt struct {
+	FledgeAuctionConfigs map[string]json.RawMessage `json:"fledge_auction_configs,omitempty"`
+}
+
 func (a *LunaAdapter) MakeRequests(request *openrtb2.BidRequest, reqInfo *adapters.ExtraRequestInfo) ([]*adapters.RequestData, []error) {
 
 	var errors []error
@@ -67,28 +71,48 @@ func (a *LunaAdapter) MakeBids(internalRequest *openrtb2.BidRequest, externalReq
 		}}
 	}
 
+	var errs []error
 	bidResponse := adapters.NewBidderResponseWithBidsCapacity(5)
-	//bidResponse := adapters.NewBidderResponseWithBidsCapacity(len(bidResp.SeatBid))
 	for _, seatBid := range bidResp.SeatBid {
 		for _, bid := range seatBid.Bid {
-			var bidExt *lunamediaBidExt
-			var bidType openrtb_ext.BidType
 
-			if err := jsonutil.Unmarshal(bid.Ext, &bidExt); err != nil {
-				return nil, []error{&errortypes.BadServerResponse{
-					Message: "Missing BidExt",
-				}}
+			typedBid := &adapters.TypedBid{
+				Bid:     &bid,
+				BidType: openrtb_ext.BidTypeBanner,
 			}
 
-			bidType = getBidType(bidExt)
+			var bidExt *lunamediaBidExt
 
-			bidResponse.Bids = append(bidResponse.Bids, &adapters.TypedBid{
-				Bid:     &bid,
-				BidType: bidType,
-			})
+			//var bidType openrtb_ext.BidType
+
+			//if err := jsonutil.Unmarshal(bid.Ext, &bidExt); err != nil {
+			//	return nil, []error{&errortypes.BadServerResponse{
+			//		Message: "Missing BidExt",
+			//	}}
+			//}
+			err := jsonutil.Unmarshal(bid.Ext, &bidExt)
+			if err != nil {
+				errs = append(errs, err)
+			} else if bidExt != nil {
+				typedBid.BidType = getBidType(bidExt)
+			}
+			bidResponse.Bids = append(bidResponse.Bids, typedBid)
 		}
+		//if bidResp.Ext != nil {
+		//	var bidRespExt respExt
+		//	if err := jsonutil.Unmarshal(bidResp.Ext, &bidRespExt); err == nil && bidRespExt.FledgeAuctionConfigs != nil {
+		//		bidResponse.FledgeAuctionConfigs = make([]*openrtb_ext.FledgeAuctionConfig, 0, len(bidRespExt.FledgeAuctionConfigs))
+		//		for impId, config := range bidRespExt.FledgeAuctionConfigs {
+		//			fledgeAuctionConfig := &openrtb_ext.FledgeAuctionConfig{
+		//				ImpId:  impId,
+		//				Config: config,
+		//			}
+		//			bidResponse.FledgeAuctionConfigs = append(bidResponse.FledgeAuctionConfigs, fledgeAuctionConfig)
+		//		}
+		//	}
+		//}
 	}
-	return bidResponse, nil
+	return bidResponse, errs
 }
 
 // getBidType returns the bid type specified in the response bid.ext
