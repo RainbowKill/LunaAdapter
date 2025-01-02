@@ -1,4 +1,4 @@
-package lunamedia
+package lunamediaV2
 
 import (
 	"testing"
