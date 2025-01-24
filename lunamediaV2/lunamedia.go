@@ -81,7 +81,7 @@ func getImpressionsInfo(imps []openrtb2.Imp) (map[openrtb_ext.ExtImpLunaMediaV2]
 }
 
 func validateImpression(impExt *openrtb_ext.ExtImpLunaMediaV2) error {
-	if impExt.uqhash == "" {
+	if impExt.UQHash == "" {
 		return &errortypes.BadInput{Message: "No pubid value provided"}
 	}
 	return nil
@@ -181,7 +181,7 @@ func createBidRequest(prebidBidRequest *openrtb2.BidRequest, params *openrtb_ext
 
 // Builds enpoint url based on adapter-specific pub settings from imp.ext
 func (adapter *LunaMediaAdapter) buildEndpointURL(params *openrtb_ext.ExtImpLunaMediaV2) (string, error) {
-	endpointParams := macros.EndpointTemplateParams{uqhash: params.uqhash}
+	endpointParams := macros.EndpointTemplateParams{UQHash: params.UQHash}
 	return macros.ResolveMacros(adapter.EndpointTemplate, endpointParams)
 }
 
