@@ -50,10 +50,10 @@ func (adapter *LunaMediaAdapter) MakeRequests(request *openrtb2.BidRequest, reqI
 }
 
 // getImpressionsInfo checks each impression for validity and returns impressions copy with corresponding exts
-func getImpressionsInfo(imps []openrtb2.Imp) (map[openrtb_ext.ExtImpLunaMedia][]openrtb2.Imp, []openrtb2.Imp, []error) {
+func getImpressionsInfo(imps []openrtb2.Imp) (map[openrtb_ext.ExtImpLunaMediaV2][]openrtb2.Imp, []openrtb2.Imp, []error) {
 	errors := make([]error, 0, len(imps))
 	resImps := make([]openrtb2.Imp, 0, len(imps))
-	res := make(map[openrtb_ext.ExtImpLunaMedia][]openrtb2.Imp)
+	res := make(map[openrtb_ext.ExtImpLunaMediaV2][]openrtb2.Imp)
 
 	for _, imp := range imps {
 		impExt, err := getImpressionExt(&imp)
@@ -80,8 +80,8 @@ func getImpressionsInfo(imps []openrtb2.Imp) (map[openrtb_ext.ExtImpLunaMedia][]
 	return res, resImps, errors
 }
 
-func validateImpression(impExt *openrtb_ext.ExtImpLunaMedia) error {
-	if impExt.PublisherID == "" {
+func validateImpression(impExt *openrtb_ext.ExtImpLunaMediaV2) error {
+	if impExt.uqhash == "" {
 		return &errortypes.BadInput{Message: "No pubid value provided"}
 	}
 	return nil
@@ -115,14 +115,14 @@ func compatBannerImpression(imp *openrtb2.Imp) error {
 	return nil
 }
 
-func getImpressionExt(imp *openrtb2.Imp) (*openrtb_ext.ExtImpLunaMedia, error) {
+func getImpressionExt(imp *openrtb2.Imp) (*openrtb_ext.ExtImpLunaMediaV2, error) {
 	var bidderExt adapters.ExtImpBidder
 	if err := jsonutil.Unmarshal(imp.Ext, &bidderExt); err != nil {
 		return nil, &errortypes.BadInput{
 			Message: err.Error(),
 		}
 	}
-	var LunaMediaExt openrtb_ext.ExtImpLunaMedia
+	var LunaMediaExt openrtb_ext.ExtImpLunaMediaV2
 	if err := jsonutil.Unmarshal(bidderExt.Bidder, &LunaMediaExt); err != nil {
 		return nil, &errortypes.BadInput{
 			Message: err.Error(),
@@ -131,7 +131,7 @@ func getImpressionExt(imp *openrtb2.Imp) (*openrtb_ext.ExtImpLunaMedia, error) {
 	return &LunaMediaExt, nil
 }
 
-func (adapter *LunaMediaAdapter) buildAdapterRequest(prebidBidRequest *openrtb2.BidRequest, params *openrtb_ext.ExtImpLunaMedia, imps []openrtb2.Imp) (*adapters.RequestData, error) {
+func (adapter *LunaMediaAdapter) buildAdapterRequest(prebidBidRequest *openrtb2.BidRequest, params *openrtb_ext.ExtImpLunaMediaV2, imps []openrtb2.Imp) (*adapters.RequestData, error) {
 	newBidRequest := createBidRequest(prebidBidRequest, params, imps)
 	reqJSON, err := json.Marshal(newBidRequest)
 	if err != nil {
@@ -156,7 +156,7 @@ func (adapter *LunaMediaAdapter) buildAdapterRequest(prebidBidRequest *openrtb2.
 		ImpIDs:  openrtb_ext.GetImpIDs(imps)}, nil
 }
 
-func createBidRequest(prebidBidRequest *openrtb2.BidRequest, params *openrtb_ext.ExtImpLunaMedia, imps []openrtb2.Imp) *openrtb2.BidRequest {
+func createBidRequest(prebidBidRequest *openrtb2.BidRequest, params *openrtb_ext.ExtImpLunaMediaV2, imps []openrtb2.Imp) *openrtb2.BidRequest {
 	bidRequest := *prebidBidRequest
 	bidRequest.Imp = imps
 	for idx := range bidRequest.Imp {
@@ -180,8 +180,8 @@ func createBidRequest(prebidBidRequest *openrtb2.BidRequest, params *openrtb_ext
 }
 
 // Builds enpoint url based on adapter-specific pub settings from imp.ext
-func (adapter *LunaMediaAdapter) buildEndpointURL(params *openrtb_ext.ExtImpLunaMedia) (string, error) {
-	endpointParams := macros.EndpointTemplateParams{PublisherID: params.PublisherID}
+func (adapter *LunaMediaAdapter) buildEndpointURL(params *openrtb_ext.ExtImpLunaMediaV2) (string, error) {
+	endpointParams := macros.EndpointTemplateParams{uqhash: params.uqhash}
 	return macros.ResolveMacros(adapter.EndpointTemplate, endpointParams)
 }
 
